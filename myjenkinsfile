@@ -1,0 +1,43 @@
+pipeline {
+    agent { label 'slave1' }
+    stages {
+        stage ('SCM checkout') {
+            steps {
+                git 'https://github.com/srinubabu9/star-agile-insurance-project.git'
+            }
+        }
+        stage ('MAVEN BUILD') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+        stage('test reports') {
+            steps {
+                publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: '/home/sri/workspace/INSURE-PROJECT/target/surefire-reports', reportFiles: 'index.html', reportName: 'HTML Report', reportTitles: '', useWrapperFileDirectly: true])
+            }
+        }
+        stage('build-docker-image') {
+            steps{
+                sh 'docker build -t srinubabuthammisetti/insure-me .'
+                sh 'docker images'
+            }
+        }
+        stage('docker-login') {
+            steps{
+                withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+                sh 'docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}'
+                        }
+            }
+        }
+        stage ('docker image push') {
+            steps {
+                sh 'docker push srinubabuthammisetti/insure-me'
+            }
+        }
+        stage('deploy using ansible') {
+            steps {
+            ansiblePlaybook credentialsId: 'slave_node1', disableHostKeyChecking: true, installation: 'ansible', inventory: '/etc/ansible/hosts', playbook: 'ansible-playbook.yml', vaultTmpPath: ''
+            }
+        }
+    }
+}
