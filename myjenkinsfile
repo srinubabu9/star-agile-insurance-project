@@ -29,7 +29,7 @@ pipeline {
                         }
             }
         }
-        stage ('docker image push') {
+        stage ('push image to D-HUB') {
             steps {
                 sh 'docker push srinubabuthammisetti/insure-me'
             }
